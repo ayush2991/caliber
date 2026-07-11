@@ -24,6 +24,7 @@ struct ContentView: View {
         }
         .task {
             SeedData.seedExercisesIfNeeded(in: modelContext)
+            SeedData.seedSampleHistoryIfNeeded(in: modelContext)
         }
     }
 }

@@ -27,6 +27,8 @@ xcodebuild -project caliber.xcodeproj -scheme caliber test \
 
 There is no package manager (CocoaPods/SPM) in use yet.
 
+Don't launch the iOS Simulator or drive the app UI (no `xcrun simctl boot`/`install`/`launch`, no screenshots) by default. Build and test via `xcodebuild` as above, then ask the user whether they'd like UI verification/screenshots for this change — they'll sometimes want it done, sometimes prefer to check manually themselves.
+
 ## Architecture
 
 The Xcode project uses synchronized file groups (`PBXFileSystemSynchronizedRootGroup`), so new files dropped into `caliber/`, `caliberTests/`, or `caliberUITests/` are picked up automatically — there's no need to hand-edit `caliber.xcodeproj/project.pbxproj` to add a source file to the build.

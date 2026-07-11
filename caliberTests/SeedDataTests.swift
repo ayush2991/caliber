@@ -35,6 +35,31 @@ struct SeedDataTests {
         #expect(count == SeedData.exercises.count)
     }
 
+    @Test func seedingSampleHistoryInsertsSessionsWithLinkedExercises() throws {
+        let context = try makeInMemoryContext()
+        SeedData.seedExercisesIfNeeded(in: context)
+
+        SeedData.seedSampleHistoryIfNeeded(in: context)
+
+        let sessions = try context.fetch(FetchDescriptor<WorkoutSession>())
+        #expect(sessions.count == SeedData.sampleHistory.count)
+
+        let entries = try context.fetch(FetchDescriptor<SetEntry>())
+        #expect(!entries.isEmpty)
+        #expect(entries.allSatisfy { $0.exercise != nil })
+    }
+
+    @Test func seedingSampleHistoryTwiceDoesNotDuplicate() throws {
+        let context = try makeInMemoryContext()
+        SeedData.seedExercisesIfNeeded(in: context)
+
+        SeedData.seedSampleHistoryIfNeeded(in: context)
+        SeedData.seedSampleHistoryIfNeeded(in: context)
+
+        let count = try context.fetchCount(FetchDescriptor<WorkoutSession>())
+        #expect(count == SeedData.sampleHistory.count)
+    }
+
     @Test func deletingSessionCascadesToSetEntries() throws {
         let context = try makeInMemoryContext()
 
