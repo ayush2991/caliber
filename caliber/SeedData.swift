@@ -110,29 +110,29 @@ enum SeedData {
         ]),
     ]
 
-    static let exercises: [(name: String, category: String, equipment: String)] = [
-        ("Bench Press", "Chest", "Barbell"),
-        ("Incline Dumbbell Press", "Chest", "Dumbbell"),
-        ("Cable Fly", "Chest", "Cable"),
+    static let exercises: [(name: String, category: Exercise.Category, equipment: Exercise.Equipment)] = [
+        ("Bench Press", .chest, .barbell),
+        ("Incline Dumbbell Press", .chest, .dumbbell),
+        ("Cable Fly", .chest, .cable),
 
-        ("Deadlift", "Back", "Barbell"),
-        ("Pull-up", "Back", "Bodyweight"),
-        ("Barbell Row", "Back", "Barbell"),
+        ("Deadlift", .back, .barbell),
+        ("Pull-up", .back, .bodyweight),
+        ("Barbell Row", .back, .barbell),
 
-        ("Squat", "Legs", "Barbell"),
-        ("Leg Press", "Legs", "Machine"),
-        ("Romanian Deadlift", "Legs", "Barbell"),
+        ("Squat", .legs, .barbell),
+        ("Leg Press", .legs, .machine),
+        ("Romanian Deadlift", .legs, .barbell),
 
-        ("Overhead Press", "Shoulders", "Barbell"),
-        ("Lateral Raise", "Shoulders", "Dumbbell"),
-        ("Face Pull", "Shoulders", "Cable"),
+        ("Overhead Press", .shoulders, .barbell),
+        ("Lateral Raise", .shoulders, .dumbbell),
+        ("Face Pull", .shoulders, .cable),
 
-        ("Bicep Curl", "Arms", "Dumbbell"),
-        ("Tricep Pushdown", "Arms", "Cable"),
-        ("Hammer Curl", "Arms", "Dumbbell"),
+        ("Bicep Curl", .arms, .dumbbell),
+        ("Tricep Pushdown", .arms, .cable),
+        ("Hammer Curl", .arms, .dumbbell),
 
-        ("Plank", "Core", "Bodyweight"),
-        ("Crunch", "Core", "Bodyweight"),
-        ("Hanging Leg Raise", "Core", "Bodyweight"),
+        ("Plank", .core, .bodyweight),
+        ("Crunch", .core, .bodyweight),
+        ("Hanging Leg Raise", .core, .bodyweight),
     ]
 }

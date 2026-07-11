@@ -63,7 +63,7 @@ struct SeedDataTests {
     @Test func deletingSessionCascadesToSetEntries() throws {
         let context = try makeInMemoryContext()
 
-        let exercise = Exercise(name: "Bench Press", category: "Chest", equipment: "Barbell")
+        let exercise = Exercise(name: "Bench Press", category: .chest, equipment: .barbell)
         let entry = SetEntry(weight: 135, reps: 5, order: 0, exercise: exercise)
         let session = WorkoutSession(setEntries: [entry])
         context.insert(exercise)

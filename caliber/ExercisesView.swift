@@ -9,19 +9,21 @@ import SwiftData
 struct ExercisesView: View {
     @Query(sort: \Exercise.name) private var exercises: [Exercise]
 
-    private var categories: [String] {
-        Array(Set(exercises.map(\.category))).sorted()
+    private var categoriesPresent: [Exercise.Category] {
+        Exercise.Category.allCases.filter { category in
+            exercises.contains { $0.category == category }
+        }
     }
 
     var body: some View {
         NavigationStack {
             List {
-                ForEach(categories, id: \.self) { category in
-                    Section(category) {
+                ForEach(categoriesPresent, id: \.self) { category in
+                    Section(category.rawValue) {
                         ForEach(exercises.filter { $0.category == category }) { exercise in
                             VStack(alignment: .leading) {
                                 Text(exercise.name)
-                                Text(exercise.equipment)
+                                Text(exercise.equipment.rawValue)
                                     .font(.caption)
                                     .foregroundStyle(.secondary)
                             }
