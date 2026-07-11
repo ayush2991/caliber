@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caliber – History &amp; Profile Explorer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0b0b0c; color: #ebebf5cc; min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    display: flex; flex-direction: column;
+  }
+
+  header { padding: 20px 28px 8px; }
+  header h1 { color: #fff; font-size: 20px; font-weight: 700; }
+  header p { color: #8e8e93; font-size: 13px; margin-top: 4px; }
+
+  .layout { flex: 1; display: grid; grid-template-columns: 340px 1fr 340px; gap: 0; min-height: 0; }
+
+  /* ---- controls panel ---- */
+  .controls { padding: 8px 24px 24px; overflow-y: auto; border-right: 1px solid #1f1f22; }
+  .group { margin-bottom: 22px; }
+  .group-label { font-size: 11px; font-weight: 700; color: #8e8e93; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 10px; }
+
+  .option-cards { display: flex; flex-direction: column; gap: 8px; }
+  .option-card {
+    background: #1c1c1e; border: 1.5px solid transparent; border-radius: 10px;
+    padding: 10px 12px; cursor: pointer; transition: border-color .12s, background .12s;
+  }
+  .option-card:hover { background: #232326; }
+  .option-card.selected { border-color: #ff6b35; background: #2a1d16; }
+  .option-card .t { color: #fff; font-size: 13px; font-weight: 600; }
+  .option-card .d { color: #8e8e93; font-size: 11.5px; margin-top: 2px; }
+
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; }
+  .toggle-row .label { color: #ebebf5; font-size: 13px; }
+  .switch { width: 42px; height: 24px; border-radius: 12px; background: #3a3a3c; position: relative; cursor: pointer; flex-shrink: 0; transition: background .15s; }
+  .switch.on { background: #ff6b35; }
+  .switch .knob { width: 20px; height: 20px; border-radius: 50%; background: #fff; position: absolute; top: 2px; left: 2px; transition: left .15s; }
+  .switch.on .knob { left: 20px; }
+
+  .tab-select { display: flex; background: #1c1c1e; border-radius: 10px; padding: 3px; gap: 3px; }
+  .tab-select .opt { flex: 1; text-align: center; padding: 8px 0; border-radius: 8px; font-size: 13px; font-weight: 600; color: #8e8e93; cursor: pointer; }
+  .tab-select .opt.selected { background: #ff6b35; color: #fff; }
+
+  /* ---- preview panel ---- */
+  .preview-panel { display: flex; align-items: center; justify-content: center; padding: 24px; overflow: auto; }
+
+  .phone {
+    width: 390px; height: 844px; background: #000; border-radius: 50px;
+    box-shadow: 0 0 0 2px #3a3a3c, 0 30px 80px rgba(0,0,0,.8);
+    overflow: hidden; position: relative; display: flex; flex-direction: column; flex-shrink: 0;
+  }
+  .status { height: 50px; background: #000; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 28px 6px; color: #fff; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .dynamic-island { width: 120px; height: 34px; background: #000; border: 2px solid #1c1c1e; border-radius: 20px; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); }
+  .screen { flex: 1; overflow-y: auto; background: #000; }
+
+  .tabbar { height: 83px; background: rgba(28,28,30,.92); backdrop-filter: blur(20px); border-top: 1px solid #2c2c2e; display: flex; align-items: flex-start; padding-top: 10px; flex-shrink: 0; }
+  .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; color: #636366; font-size: 10px; }
+  .tab.active { color: #ff6b35; }
+  .tab svg { width: 24px; height: 24px; }
+
+  h1.screen-title { font-size: 28px; font-weight: 700; color: #fff; padding: 16px 20px 4px; }
+  h2 { font-size: 20px; font-weight: 600; color: #fff; }
+  h3 { font-size: 15px; font-weight: 600; color: #fff; }
+  .card { background: #1c1c1e; border-radius: 16px; padding: 16px; margin: 0 20px 12px; }
+  .row { display: flex; justify-content: space-between; align-items: center; }
+  .label { font-size: 12px; color: #8e8e93; text-transform: uppercase; letter-spacing: .5px; }
+  .pill { background: #ff6b35; color: #fff; font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+  .muted { color: #8e8e93; font-size: 13px; }
+  .divider { height: 1px; background: #2c2c2e; margin: 10px 0; }
+  .section-header { padding: 18px 20px 6px; font-size: 13px; font-weight: 600; color: #8e8e93; text-transform: uppercase; letter-spacing: .5px; }
+
+  .chip-row { display: flex; gap: 8px; padding: 0 20px 12px; overflow-x: auto; }
+  .chip { background: #1c1c1e; border-radius: 20px; padding: 6px 14px; font-size: 13px; color: #ebebf5cc; white-space: nowrap; }
+  .chip.active { background: #ff6b35; color: #fff; }
+
+  .workout-row { display: flex; align-items: center; gap: 12px; }
+  .workout-icon { width: 40px; height: 40px; border-radius: 12px; background: #ff6b3522; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .workout-meta { flex: 1; }
+  .workout-meta .name { font-size: 15px; font-weight: 600; color: #fff; }
+  .workout-meta .info { font-size: 12px; color: #8e8e93; }
+
+  .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 20px 16px; }
+  .stat-card { background: #1c1c1e; border-radius: 16px; padding: 14px; }
+  .stat-card .val { font-size: 24px; font-weight: 700; color: #fff; }
+  .stat-card .unit { font-size: 12px; color: #8e8e93; }
+
+  .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 90px; margin-top: 10px; }
+  .bar-chart .bar { flex: 1; background: #ff6b35; border-radius: 4px 4px 0 0; opacity: .85; }
+  .bar-chart .bar.today { background: #ff6b35; opacity: 1; }
+
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin-top: 10px; }
+  .cal-cell { aspect-ratio: 1; border-radius: 8px; background: #2c2c2e; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #8e8e93; }
+  .cal-cell.done { background: #ff6b35; color: #fff; font-weight: 600; }
+  .cal-cell.today { border: 1.5px solid #ff6b35; color: #fff; }
+
+  .timeline { padding: 4px 20px; }
+  .t-item { display: flex; gap: 14px; }
+  .t-rail { display: flex; flex-direction: column; align-items: center; width: 12px; flex-shrink: 0; }
+  .t-dot { width: 10px; height: 10px; border-radius: 50%; background: #ff6b35; margin-top: 6px; }
+  .t-line { flex: 1; width: 2px; background: #2c2c2e; margin: 2px 0; }
+  .t-content { flex: 1; padding-bottom: 22px; }
+  .t-date { font-size: 11px; color: #8e8e93; text-transform: uppercase; letter-spacing: .4px; margin-bottom: 4px; }
+
+  .avatar { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg,#ff6b35,#ff9166); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; color: #fff; }
+  .profile-header { display: flex; align-items: center; gap: 14px; padding: 16px 20px 20px; }
+  .profile-header .name { font-size: 20px; font-weight: 700; color: #fff; }
+  .profile-header .sub { font-size: 13px; color: #8e8e93; margin-top: 2px; }
+
+  .pr-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; }
+  .pr-row .ex { font-size: 14px; color: #fff; font-weight: 500; }
+  .pr-row .val { font-size: 14px; color: #ff6b35; font-weight: 700; }
+
+  .settings-row { display: flex; align-items: center; gap: 12px; padding: 13px 20px; }
+  .settings-icon { width: 30px; height: 30px; border-radius: 8px; background: #ff6b35; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .settings-icon.gray { background: #48484a; }
+  .settings-row .t { font-size: 15px; color: #fff; flex: 1; }
+  .chev { color: #48484a; }
+
+  .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 90px 40px; text-align: center; }
+  .empty-state .emoji { font-size: 44px; margin-bottom: 14px; }
+  .empty-state .t { color: #fff; font-size: 16px; font-weight: 600; margin-bottom: 6px; }
+  .empty-state .d { color: #8e8e93; font-size: 13px; }
+
+  /* ---- prompt panel ---- */
+  .prompt-panel { padding: 8px 24px 24px; overflow-y: auto; border-left: 1px solid #1f1f22; display: flex; flex-direction: column; }
+  .prompt-box {
+    background: #1c1c1e; border-radius: 12px; padding: 16px; font-size: 13px; line-height: 1.6;
+    color: #ebebf5; flex: 1; white-space: pre-wrap; font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+  .copy-btn {
+    margin-top: 12px; background: #ff6b35; color: #fff; border: none; border-radius: 10px;
+    padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%;
+  }
+  .copy-btn.copied { background: #34c759; }
+
+  @media (max-width: 1150px) {
+    .layout { grid-template-columns: 1fr; }
+    .controls, .prompt-panel { border: none; border-bottom: 1px solid #1f1f22; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Caliber — History &amp; Profile Explorer</h1>
+  <p>HistoryView and ProfileView are placeholders today. Pick a layout direction for each, then copy the prompt to build it.</p>
+</header>
+
+<div class="layout">
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <div class="group">
+      <div class="group-label">Screen</div>
+      <div class="tab-select">
+        <div class="opt selected" id="screen-history-tab" onclick="setScreen('history')">History</div>
+        <div class="opt" id="screen-profile-tab" onclick="setScreen('profile')">Profile</div>
+      </div>
+    </div>
+
+    <!-- HISTORY CONTROLS -->
+    <div id="history-controls">
+      <div class="group">
+        <div class="group-label">Layout</div>
+        <div class="option-cards">
+          <div class="option-card selected" data-val="grouped" onclick="setState('historyLayout','grouped')">
+            <div class="t">Grouped by date</div>
+            <div class="d">Flat reverse-chron list of sessions, like the Home screen's Recent list</div>
+          </div>
+          <div class="option-card" data-val="calendar" onclick="setState('historyLayout','calendar')">
+            <div class="t">Calendar + list</div>
+            <div class="d">Month grid showing workout days on top, session list below</div>
+          </div>
+          <div class="option-card" data-val="timeline" onclick="setState('historyLayout','timeline')">
+            <div class="t">Timeline</div>
+            <div class="d">Vertical connected timeline, one node per session</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-label">Extras</div>
+        <div class="toggle-row">
+          <span class="label">Weekly volume chart</span>
+          <div class="switch" id="toggle-chart" onclick="toggleState('showChart')"><div class="knob"></div></div>
+        </div>
+        <div class="toggle-row">
+          <span class="label">Category filter chips</span>
+          <div class="switch on" id="toggle-chips" onclick="toggleState('showChips')"><div class="knob"></div></div>
+        </div>
+        <div class="toggle-row">
+          <span class="label">Empty state (no sessions)</span>
+          <div class="switch" id="toggle-empty" onclick="toggleState('historyEmpty')"><div class="knob"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROFILE CONTROLS -->
+    <div id="profile-controls" style="display:none;">
+      <div class="group">
+        <div class="group-label">Layout</div>
+        <div class="option-cards">
+          <div class="option-card selected" data-val="stats" onclick="setState('profileLayout','stats')">
+            <div class="t">Stats dashboard</div>
+            <div class="d">Avatar header, stat tiles, personal records, settings below</div>
+          </div>
+          <div class="option-card" data-val="settings" onclick="setState('profileLayout','settings')">
+            <div class="t">Settings-first</div>
+            <div class="d">Compact identity header, settings list is the main focus</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <div class="group-label">Extras</div>
+        <div class="toggle-row">
+          <span class="label">Streak card</span>
+          <div class="switch on" id="toggle-streak" onclick="toggleState('showStreak')"><div class="knob"></div></div>
+        </div>
+        <div class="toggle-row">
+          <span class="label">Personal records list</span>
+          <div class="switch on" id="toggle-pr" onclick="toggleState('showPR')"><div class="knob"></div></div>
+        </div>
+        <div class="toggle-row">
+          <span class="label">Units row (lbs/kg)</span>
+          <div class="switch on" id="toggle-units" onclick="toggleState('showUnits')"><div class="knob"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="preview-panel">
+    <div class="phone">
+      <div class="status">
+        <div class="dynamic-island"></div>
+        <span>9:41</span>
+        <span style="display:flex;gap:5px;align-items:center;">
+          <svg width="16" height="12" viewBox="0 0 16 12" fill="#fff"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="2.5" height="11" rx="1" opacity=".3"/></svg>
+          <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x=".5" y=".5" width="22" height="11" rx="3.5" stroke="#fff" stroke-opacity=".35"/><rect x="1.5" y="1.5" width="18" height="9" rx="2.5" fill="#fff"/><path d="M23 4v4a2 2 0 000-4z" fill="#fff" opacity=".4"/></svg>
+        </span>
+      </div>
+      <div class="screen" id="screen"></div>
+      <div class="tabbar">
+        <div class="tab"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4v16M18 4v16M2 9h4M18 9h4M2 15h4M18 15h4"/></svg>Exercises</div>
+        <div class="tab" id="tab-history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>History</div>
+        <div class="tab" id="tab-profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROMPT -->
+  <div class="prompt-panel">
+    <div class="group-label" style="margin-bottom:10px;">Prompt</div>
+    <div class="prompt-box" id="prompt"></div>
+    <button class="copy-btn" id="copy-btn" onclick="copyPrompt()">Copy Prompt</button>
+  </div>
+
+</div>
+
+<script>
+const state = {
+  screen: 'history',
+  historyLayout: 'grouped',
+  showChart: false,
+  showChips: true,
+  historyEmpty: false,
+  profileLayout: 'stats',
+  showStreak: true,
+  showPR: true,
+  showUnits: true,
+};
+
+function setScreen(name) {
+  state.screen = name;
+  document.getElementById('screen-history-tab').classList.toggle('selected', name === 'history');
+  document.getElementById('screen-profile-tab').classList.toggle('selected', name === 'profile');
+  document.getElementById('history-controls').style.display = name === 'history' ? '' : 'none';
+  document.getElementById('profile-controls').style.display = name === 'profile' ? '' : 'none';
+  updateAll();
+}
+
+function setState(key, val) {
+  state[key] = val;
+  document.querySelectorAll(`.option-card[data-val]`).forEach(c => {
+    if (c.parentElement.previousElementSibling === undefined) return;
+  });
+  // reselect within the right group only
+  const groups = document.querySelectorAll('.option-cards');
+  groups.forEach(g => {
+    const cards = g.querySelectorAll('.option-card');
+    cards.forEach(c => {
+      const matchesKey = (key === 'historyLayout' && g.closest('#history-controls')) ||
+                          (key === 'profileLayout' && g.closest('#profile-controls'));
+      if (matchesKey) c.classList.toggle('selected', c.dataset.val === val);
+    });
+  });
+  updateAll();
+}
+
+function toggleState(key) {
+  state[key] = !state[key];
+  const ids = { showChart: 'toggle-chart', showChips: 'toggle-chips', historyEmpty: 'toggle-empty',
+                showStreak: 'toggle-streak', showPR: 'toggle-pr', showUnits: 'toggle-units' };
+  document.getElementById(ids[key]).classList.toggle('on', state[key]);
+  updateAll();
+}
+
+function updateAll() {
+  renderPreview();
+  updatePrompt();
+}
+
+const arrow = `<svg width="8" height="14" viewBox="0 0 8 14" fill="#8e8e93"><path d="M1 1l6 6-6 6"/></svg>`;
+
+function renderPreview() {
+  document.getElementById('tab-history').classList.toggle('active', state.screen === 'history');
+  document.getElementById('tab-profile').classList.toggle('active', state.screen === 'profile');
+  const el = document.getElementById('screen');
+  el.innerHTML = state.screen === 'history' ? renderHistory() : renderProfile();
+}
+
+function renderHistory() {
+  if (state.historyEmpty) {
+    return `
+      <h1 class="screen-title">History</h1>
+      <div class="empty-state">
+        <div class="emoji">📋</div>
+        <div class="t">No workouts yet</div>
+        <div class="d">Log your first session from the Home tab and it'll show up here.</div>
+      </div>`;
+  }
+
+  const chips = state.showChips ? `
+    <div class="chip-row">
+      <div class="chip active">All</div>
+      <div class="chip">Chest</div>
+      <div class="chip">Back</div>
+      <div class="chip">Legs</div>
+      <div class="chip">Shoulders</div>
+    </div>` : '';
+
+  const chart = state.showChart ? `
+    <div class="card">
+      <div class="row"><h3>Weekly Volume</h3><span class="muted">18.2k lbs</span></div>
+      <div class="bar-chart">
+        <div class="bar" style="height:40%"></div>
+        <div class="bar" style="height:65%"></div>
+        <div class="bar" style="height:30%"></div>
+        <div class="bar today" style="height:85%"></div>
+        <div class="bar" style="height:50%"></div>
+        <div class="bar" style="height:20%"></div>
+        <div class="bar" style="height:0%"></div>
+      </div>
+    </div>` : '';
+
+  const sessions = [
+    { icon: '🏋️', name: 'Push Day A', info: 'Yesterday · 52 min · 8 exercises', date: 'Yesterday' },
+    { icon: '🦵', name: 'Leg Day', info: 'Mon, Jul 6 · 65 min · 6 exercises', date: 'Mon, Jul 6' },
+    { icon: '🏋️', name: 'Pull Day', info: 'Sat, Jul 4 · 48 min · 7 exercises', date: 'Sat, Jul 4' },
+    { icon: '💪', name: 'Arms + Core', info: 'Thu, Jul 2 · 40 min · 5 exercises', date: 'Thu, Jul 2' },
+  ];
+
+  if (state.historyLayout === 'grouped') {
+    const rows = sessions.map((s, i) => `
+      ${i > 0 ? '<div class="divider"></div>' : ''}
+      <div class="workout-row">
+        <div class="workout-icon">${s.icon}</div>
+        <div class="workout-meta"><div class="name">${s.name}</div><div class="info">${s.info}</div></div>
+        ${arrow}
+      </div>`).join('');
+    return `<h1 class="screen-title">History</h1>${chips}${chart}<div class="card">${rows}</div><div style="height:20px;"></div>`;
+  }
+
+  if (state.historyLayout === 'calendar') {
+    const doneDays = [2, 4, 8, 9, 11, 13, 16, 18];
+    let cells = '';
+    for (let d = 1; d <= 31; d++) {
+      const cls = d === 10 ? 'today' : doneDays.includes(d) ? 'done' : '';
+      cells += `<div class="cal-cell ${cls}">${d}</div>`;
+    }
+    const rows = sessions.slice(0, 3).map((s, i) => `
+      ${i > 0 ? '<div class="divider"></div>' : ''}
+      <div class="workout-row">
+        <div class="workout-icon">${s.icon}</div>
+        <div class="workout-meta"><div class="name">${s.name}</div><div class="info">${s.info}</div></div>
+        ${arrow}
+      </div>`).join('');
+    return `<h1 class="screen-title">History</h1>${chips}
+      <div class="card"><div class="row"><h3>July</h3><span class="muted">8 workouts</span></div><div class="cal-grid">${cells}</div></div>
+      ${chart}
+      <div class="section-header">Sessions</div>
+      <div class="card">${rows}</div><div style="height:20px;"></div>`;
+  }
+
+  // timeline
+  const items = sessions.map((s, i) => `
+    <div class="t-item">
+      <div class="t-rail"><div class="t-dot"></div>${i < sessions.length - 1 ? '<div class="t-line"></div>' : ''}</div>
+      <div class="t-content">
+        <div class="t-date">${s.date}</div>
+        <div class="card" style="margin:0;">
+          <div class="workout-row">
+            <div class="workout-icon">${s.icon}</div>
+            <div class="workout-meta"><div class="name">${s.name}</div><div class="info">${s.info}</div></div>
+            ${arrow}
+          </div>
+        </div>
+      </div>
+    </div>`).join('');
+  return `<h1 class="screen-title">History</h1>${chips}${chart}<div class="timeline">${items}</div><div style="height:20px;"></div>`;
+}
+
+function renderProfile() {
+  const header = `
+    <div class="profile-header">
+      <div class="avatar">A</div>
+      <div>
+        <div class="name">Alex Rivera</div>
+        <div class="sub">Member since Jan 2026</div>
+      </div>
+    </div>`;
+
+  const streak = state.showStreak ? `
+    <div style="padding: 0 20px; margin-bottom: 8px;" class="row"><h2 style="font-size:16px;">Streak</h2><span class="pill">🔥 12 days</span></div>
+    <div class="card" style="padding: 14px 16px;">
+      <div class="bar-chart" style="height:24px;">
+        <div class="bar" style="height:100%"></div><div class="bar" style="height:100%"></div><div class="bar" style="height:100%"></div>
+        <div class="bar" style="height:20%;opacity:.3"></div><div class="bar" style="height:100%"></div><div class="bar today" style="height:100%"></div><div class="bar" style="height:20%;opacity:.3"></div>
+      </div>
+    </div>` : '';
+
+  const pr = state.showPR ? `
+    <div class="section-header" style="padding-top:6px;">Personal Records</div>
+    <div class="card">
+      <div class="pr-row"><span class="ex">Bench Press</span><span class="val">185 lb × 5</span></div>
+      <div class="divider"></div>
+      <div class="pr-row"><span class="ex">Squat</span><span class="val">225 lb × 5</span></div>
+      <div class="divider"></div>
+      <div class="pr-row"><span class="ex">Deadlift</span><span class="val">275 lb × 3</span></div>
+    </div>` : '';
+
+  const unitsRow = state.showUnits ? `
+    <div class="settings-row"><div class="settings-icon">⚖️</div><div class="t">Units</div><span class="muted">lbs</span><span class="chev">›</span></div>` : '';
+
+  const settingsList = `
+    <div class="section-header" style="padding-top:6px;">Settings</div>
+    <div class="card" style="padding:0;">
+      ${unitsRow}
+      <div class="divider" style="margin:0 20px;"></div>
+      <div class="settings-row"><div class="settings-icon">🔔</div><div class="t">Notifications</div><span class="chev">›</span></div>
+      <div class="divider" style="margin:0 20px;"></div>
+      <div class="settings-row"><div class="settings-icon gray">📤</div><div class="t">Export Data</div><span class="chev">›</span></div>
+      <div class="divider" style="margin:0 20px;"></div>
+      <div class="settings-row"><div class="settings-icon gray">ℹ️</div><div class="t">About</div><span class="chev">›</span></div>
+    </div>`;
+
+  if (state.profileLayout === 'stats') {
+    const stats = `
+      <div class="stat-row">
+        <div class="stat-card"><div class="label">Total</div><div class="val">86</div><div class="unit">workouts</div></div>
+        <div class="stat-card"><div class="label">Volume</div><div class="val">412k</div><div class="unit">lbs lifted</div></div>
+      </div>`;
+    return `${header}${stats}${streak}${pr}${settingsList}<div style="height:20px;"></div>`;
+  }
+
+  // settings-first: compact header, stats folded into a single row, settings list dominates
+  const compactStats = `
+    <div class="card" style="display:flex;justify-content:space-around;text-align:center;">
+      <div><div class="val" style="font-size:18px;">86</div><div class="unit">workouts</div></div>
+      <div><div class="val" style="font-size:18px;">412k</div><div class="unit">lbs</div></div>
+      <div><div class="val" style="font-size:18px;">12</div><div class="unit">day streak</div></div>
+    </div>`;
+  return `${header}${compactStats}${state.showPR ? pr : ''}${settingsList}<div style="height:20px;"></div>`;
+}
+
+function updatePrompt() {
+  const parts = [];
+
+  if (state.screen === 'history') {
+    parts.push(`Build out HistoryView.swift to replace its current placeholder.`);
+    if (state.historyEmpty) {
+      parts.push(`Show an empty state (icon + "No workouts yet" message) when there are no WorkoutSession records, prompting the user to log one from Home.`);
+    } else {
+      if (state.historyLayout === 'grouped') {
+        parts.push(`Layout: a single reverse-chronological card list of sessions (matching the Home screen's "Recent" card style) — no grouping beyond the natural date sort already used by the @Query.`);
+      } else if (state.historyLayout === 'calendar') {
+        parts.push(`Layout: a month calendar grid at the top marking days with a session (highlight today separately), followed by a session list below it for the visible month.`);
+      } else {
+        parts.push(`Layout: a vertical connected timeline — a dot+line rail on the left, each session rendered as a card node with its date as a small label above it.`);
+      }
+      if (state.showChart) parts.push(`Include a weekly volume bar chart card (7 bars, one per day, today highlighted) above the session list.`);
+      if (state.showChips) parts.push(`Include a horizontal category filter chip row (All / Chest / Back / Legs / Shoulders / Arms / Core) to filter sessions by exercise category.`);
+    }
+  } else {
+    parts.push(`Build out ProfileView.swift to replace its current placeholder.`);
+    if (state.profileLayout === 'stats') {
+      parts.push(`Layout: avatar + name header, then a 2-up stat tile row (total workouts, total volume), then a streak card, then sections below.`);
+    } else {
+      parts.push(`Layout: compact avatar + name header, then a single 3-up inline stat row (workouts / volume / streak), with the settings list as the visually dominant section.`);
+    }
+    if (state.showStreak && state.profileLayout === 'stats') parts.push(`Include the streak card (7-day bar strip + "🔥 N days" pill), same visual language as the Home screen's streak card.`);
+    if (state.showPR) parts.push(`Include a "Personal Records" section listing top exercises with best weight × reps, orange-highlighted values.`);
+    parts.push(`Include a Settings list (units, notifications, export data, about) as tappable rows with a leading icon and trailing chevron.`);
+    if (!state.showUnits) parts.push(`Omit the Units row from Settings for now.`);
+  }
+
+  document.getElementById('prompt').textContent = parts.join('\n\n');
+}
+
+function copyPrompt() {
+  const text = document.getElementById('prompt').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy Prompt'; btn.classList.remove('copied'); }, 1400);
+  });
+}
+
+updateAll();
+</script>
+</body>
+</html>

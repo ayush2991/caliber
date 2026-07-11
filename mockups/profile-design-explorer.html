@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caliber – Profile Design System Explorer</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0b0b0c; color: #ebebf5cc; min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    display: flex; flex-direction: column;
+  }
+
+  header { padding: 20px 28px 8px; }
+  header h1 { color: #fff; font-size: 20px; font-weight: 700; }
+  header p { color: #8e8e93; font-size: 13px; margin-top: 4px; }
+
+  .layout { flex: 1; display: grid; grid-template-columns: 340px 1fr 340px; min-height: 0; }
+
+  /* ---- controls panel ---- */
+  .controls { padding: 8px 24px 24px; overflow-y: auto; border-right: 1px solid #1f1f22; }
+  .group { margin-bottom: 22px; }
+  .group-label { font-size: 11px; font-weight: 700; color: #8e8e93; text-transform: uppercase; letter-spacing: .6px; margin-bottom: 10px; }
+
+  .preset-row { display: flex; flex-wrap: wrap; gap: 8px; }
+  .preset-chip {
+    background: #1c1c1e; border: 1.5px solid transparent; border-radius: 20px;
+    padding: 7px 13px; font-size: 12.5px; color: #ebebf5; cursor: pointer;
+  }
+  .preset-chip:hover { background: #232326; }
+  .preset-chip.selected { border-color: #ff6b35; background: #2a1d16; }
+
+  .option-cards { display: flex; flex-direction: column; gap: 8px; }
+  .option-card {
+    background: #1c1c1e; border: 1.5px solid transparent; border-radius: 10px;
+    padding: 10px 12px; cursor: pointer; transition: border-color .12s, background .12s;
+  }
+  .option-card:hover { background: #232326; }
+  .option-card.selected { border-color: #ff6b35; background: #2a1d16; }
+  .option-card .t { color: #fff; font-size: 13px; font-weight: 600; }
+  .option-card .d { color: #8e8e93; font-size: 11.5px; margin-top: 2px; }
+
+  .slider-row { margin-bottom: 4px; }
+  .slider-row .row { display: flex; justify-content: space-between; font-size: 12.5px; color: #ebebf5; margin-bottom: 6px; }
+  .slider-row .row span.v { color: #8e8e93; font-family: ui-monospace, monospace; }
+  input[type=range] { width: 100%; accent-color: #ff6b35; }
+
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; }
+  .toggle-row .label { color: #ebebf5; font-size: 13px; }
+  .switch { width: 42px; height: 24px; border-radius: 12px; background: #3a3a3c; position: relative; cursor: pointer; flex-shrink: 0; transition: background .15s; }
+  .switch.on { background: #ff6b35; }
+  .switch .knob { width: 20px; height: 20px; border-radius: 50%; background: #fff; position: absolute; top: 2px; left: 2px; transition: left .15s; }
+  .switch.on .knob { left: 20px; }
+
+  .swatch-hue {
+    height: 14px; border-radius: 7px; margin-top: 8px;
+    background: linear-gradient(to right, hsl(0,85%,60%), hsl(60,85%,60%), hsl(120,85%,60%), hsl(180,85%,60%), hsl(240,85%,60%), hsl(300,85%,60%), hsl(360,85%,60%));
+  }
+
+  /* ---- preview panel ---- */
+  .preview-panel { display: flex; align-items: center; justify-content: center; padding: 24px; overflow: auto; }
+
+  .phone {
+    width: 390px; height: 844px; background: #000; border-radius: 50px;
+    box-shadow: 0 0 0 2px #3a3a3c, 0 30px 80px rgba(0,0,0,.8);
+    overflow: hidden; position: relative; display: flex; flex-direction: column; flex-shrink: 0;
+
+    --bg: #000000;
+    --card: #1c1c1e;
+    --card-border: transparent;
+    --divider: #2c2c2e;
+    --text: #ffffff;
+    --muted: #8e8e93;
+    --accent: #ff6b35;
+    --accent-text: #ffffff;
+    --accent-tint-bg: #ff6b3522;
+    --radius: 16px;
+    --font: -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-num: -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+  .status { height: 50px; background: var(--bg); display: flex; align-items: flex-end; justify-content: space-between; padding: 0 28px 6px; color: var(--text); font-size: 12px; font-weight: 600; flex-shrink: 0; }
+  .dynamic-island { width: 120px; height: 34px; background: #000; border: 2px solid #1c1c1e; border-radius: 20px; position: absolute; top: 8px; left: 50%; transform: translateX(-50%); }
+  .screen { flex: 1; overflow-y: auto; background: var(--bg); font-family: var(--font); }
+
+  .tabbar { height: 83px; background: color-mix(in srgb, var(--bg) 85%, var(--card)); backdrop-filter: blur(20px); border-top: 1px solid var(--divider); display: flex; align-items: flex-start; padding-top: 10px; flex-shrink: 0; }
+  .tab { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--muted); font-size: 10px; }
+  .tab.active { color: var(--accent); }
+  .tab svg { width: 24px; height: 24px; }
+
+  h2 { font-size: 16px; font-weight: 600; color: var(--text); }
+  .card { background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 16px; margin: 0 20px 12px; }
+  .row { display: flex; justify-content: space-between; align-items: center; }
+  .label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .pill { background: var(--accent); color: var(--accent-text); font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 20px; }
+  .divider { height: 1px; background: var(--divider); margin: 10px 0; }
+  .section-header { padding: 18px 20px 6px; font-size: 13px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 0 20px 16px; }
+  .stat-card { background: var(--card); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 14px; }
+  .stat-card .val { font-size: 24px; font-weight: 700; color: var(--text); font-family: var(--font-num); }
+  .stat-card .unit { font-size: 12px; color: var(--muted); }
+  .bar-chart { display: flex; align-items: flex-end; gap: 6px; height: 24px; margin-top: 10px; }
+  .bar-chart .bar { flex: 1; background: var(--accent); border-radius: 4px 4px 0 0; height: 100%; }
+  .bar-chart .bar.off { opacity: .3; height: 20%; }
+  .avatar { width: 64px; height: 64px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent) 60%, white)); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 700; color: #fff; }
+  .profile-header { display: flex; align-items: center; gap: 14px; padding: 16px 20px 20px; }
+  .profile-header .name { font-size: 20px; font-weight: 700; color: var(--text); }
+  .profile-header .sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .pr-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; }
+  .pr-row .ex { font-size: 14px; color: var(--text); font-weight: 500; }
+  .pr-row .val { font-size: 14px; color: var(--accent); font-weight: 700; font-family: var(--font-num); }
+  .settings-row { display: flex; align-items: center; gap: 12px; padding: 13px 20px; }
+  .settings-icon { width: 30px; height: 30px; border-radius: 8px; background: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .settings-icon.gray { background: color-mix(in srgb, var(--muted) 55%, var(--card)); }
+  .settings-row .t { font-size: 15px; color: var(--text); flex: 1; }
+  .chev { color: var(--muted); }
+  .muted { color: var(--muted); font-size: 13px; }
+
+  .tinted .pill { background: var(--accent-tint-bg); color: var(--accent); }
+  .tinted .settings-icon { background: var(--accent-tint-bg); color: var(--accent); }
+
+  /* ---- prompt panel ---- */
+  .prompt-panel { padding: 8px 24px 24px; overflow-y: auto; border-left: 1px solid #1f1f22; display: flex; flex-direction: column; }
+  .prompt-box {
+    background: #1c1c1e; border-radius: 12px; padding: 16px; font-size: 13px; line-height: 1.6;
+    color: #ebebf5; flex: 1; white-space: pre-wrap; font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  }
+  .copy-btn {
+    margin-top: 12px; background: #ff6b35; color: #fff; border: none; border-radius: 10px;
+    padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer; width: 100%;
+  }
+  .copy-btn.copied { background: #34c759; }
+
+  @media (max-width: 1150px) {
+    .layout { grid-template-columns: 1fr; }
+    .controls, .prompt-panel { border: none; border-bottom: 1px solid #1f1f22; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Caliber — Profile Design System Explorer</h1>
+  <p>Layout is fixed (Profile / Stats Dashboard). Explore fonts, color palette, shape, and surface treatment.</p>
+</header>
+
+<div class="layout">
+
+  <!-- CONTROLS -->
+  <div class="controls">
+    <div class="group">
+      <div class="group-label">Presets</div>
+      <div class="preset-row" id="presets"></div>
+    </div>
+
+    <div class="group">
+      <div class="group-label">Typography</div>
+      <div class="option-cards" id="font-cards"></div>
+      <div class="toggle-row">
+        <span class="label">Tabular/mono numbers</span>
+        <div class="switch" id="toggle-mono-num" onclick="toggleMonoNum()"><div class="knob"></div></div>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="group-label">Accent Color</div>
+      <div class="slider-row">
+        <div class="row"><span>Hue</span><span class="v" id="hue-val">16°</span></div>
+        <input type="range" min="0" max="360" value="16" id="hue-slider" oninput="setHue(this.value)">
+        <div class="swatch-hue"></div>
+      </div>
+      <div class="toggle-row">
+        <span class="label">Tinted accents (vs. solid fill)</span>
+        <div class="switch" id="toggle-tint" onclick="toggleTint()"><div class="knob"></div></div>
+      </div>
+    </div>
+
+    <div class="group">
+      <div class="group-label">Background</div>
+      <div class="option-cards" id="bg-cards"></div>
+    </div>
+
+    <div class="group">
+      <div class="group-label">Shape &amp; Surface</div>
+      <div class="slider-row">
+        <div class="row"><span>Corner radius</span><span class="v" id="radius-val">16px</span></div>
+        <input type="range" min="4" max="28" value="16" id="radius-slider" oninput="setRadius(this.value)">
+      </div>
+      <div class="toggle-row">
+        <span class="label">Outlined cards (vs. filled)</span>
+        <div class="switch" id="toggle-outline" onclick="toggleOutline()"><div class="knob"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PREVIEW -->
+  <div class="preview-panel">
+    <div class="phone" id="phone">
+      <div class="status">
+        <div class="dynamic-island"></div>
+        <span>9:41</span>
+        <span style="display:flex;gap:5px;align-items:center;">
+          <svg width="16" height="12" viewBox="0 0 16 12" fill="#fff"><rect x="0" y="3" width="3" height="9" rx="1"/><rect x="4.5" y="2" width="3" height="10" rx="1"/><rect x="9" y="0" width="3" height="12" rx="1"/><rect x="13.5" y="1" width="2.5" height="11" rx="1" opacity=".3"/></svg>
+          <svg width="25" height="12" viewBox="0 0 25 12" fill="none"><rect x=".5" y=".5" width="22" height="11" rx="3.5" stroke="#fff" stroke-opacity=".35"/><rect x="1.5" y="1.5" width="18" height="9" rx="2.5" fill="#fff"/><path d="M23 4v4a2 2 0 000-4z" fill="#fff" opacity=".4"/></svg>
+        </span>
+      </div>
+
+      <div class="screen" id="screen">
+        <div class="profile-header">
+          <div class="avatar">A</div>
+          <div>
+            <div class="name">Alex Rivera</div>
+            <div class="sub">Member since Jan 2026</div>
+          </div>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-card"><div class="label">Total</div><div class="val">86</div><div class="unit">workouts</div></div>
+          <div class="stat-card"><div class="label">Volume</div><div class="val">412k</div><div class="unit">lbs lifted</div></div>
+        </div>
+
+        <div style="padding: 0 20px; margin-bottom: 8px;" class="row"><h2>Streak</h2><span class="pill">🔥 12 days</span></div>
+        <div class="card" style="padding: 14px 16px;">
+          <div class="bar-chart">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar off"></div><div class="bar"></div><div class="bar"></div><div class="bar off"></div>
+          </div>
+        </div>
+
+        <div class="section-header" style="padding-top:6px;">Personal Records</div>
+        <div class="card">
+          <div class="pr-row"><span class="ex">Bench Press</span><span class="val">185 lb × 5</span></div>
+          <div class="divider"></div>
+          <div class="pr-row"><span class="ex">Squat</span><span class="val">225 lb × 5</span></div>
+          <div class="divider"></div>
+          <div class="pr-row"><span class="ex">Deadlift</span><span class="val">275 lb × 3</span></div>
+        </div>
+
+        <div class="section-header" style="padding-top:6px;">Settings</div>
+        <div class="card" style="padding:0;">
+          <div class="settings-row"><div class="settings-icon">⚖️</div><div class="t">Units</div><span class="muted">lbs</span><span class="chev">›</span></div>
+          <div class="divider" style="margin:0 20px;"></div>
+          <div class="settings-row"><div class="settings-icon">🔔</div><div class="t">Notifications</div><span class="chev">›</span></div>
+          <div class="divider" style="margin:0 20px;"></div>
+          <div class="settings-row"><div class="settings-icon gray">📤</div><div class="t">Export Data</div><span class="chev">›</span></div>
+          <div class="divider" style="margin:0 20px;"></div>
+          <div class="settings-row"><div class="settings-icon gray">ℹ️</div><div class="t">About</div><span class="chev">›</span></div>
+        </div>
+        <div style="height: 20px;"></div>
+      </div>
+
+      <div class="tabbar">
+        <div class="tab"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home</div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4v16M18 4v16M2 9h4M18 9h4M2 15h4M18 15h4"/></svg>Exercises</div>
+        <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>History</div>
+        <div class="tab active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROMPT -->
+  <div class="prompt-panel">
+    <div class="group-label" style="margin-bottom:10px;">Prompt</div>
+    <div class="prompt-box" id="prompt"></div>
+    <button class="copy-btn" id="copy-btn" onclick="copyPrompt()">Copy Prompt</button>
+  </div>
+
+</div>
+
+<script>
+const FONTS = [
+  { id: 'system',  t: 'System (SF Pro)',  d: 'Default iOS look — neutral, native, no visual statement', css: `-apple-system, BlinkMacSystemFont, sans-serif` },
+  { id: 'rounded', t: 'SF Rounded',        d: 'Softer, friendlier, common in fitness/health apps', css: `ui-rounded, -apple-system, BlinkMacSystemFont, sans-serif` },
+  { id: 'serif',   t: 'Serif Display',     d: 'Editorial, premium feel — New York-style headlines', css: `'New York', Georgia, serif` },
+  { id: 'mono',    t: 'Monospace',         d: 'Technical/data-forward, like a terminal or lab tool', css: `ui-monospace, 'SF Mono', Menlo, monospace` },
+];
+
+const BACKGROUNDS = [
+  { id: 'oled',   t: 'OLED Black',      d: 'Pure black — current mockup, max contrast, battery-friendly',
+    bg: '#000000', card: '#1c1c1e', divider: '#2c2c2e', muted: '#8e8e93', text: '#ffffff' },
+  { id: 'charcoal', t: 'Charcoal',      d: 'Slightly lifted dark gray, softer than pure black',
+    bg: '#121214', card: '#1e1e22', divider: '#2f2f34', muted: '#9a9aa0', text: '#f5f5f7' },
+  { id: 'warm',   t: 'Warm Dark',       d: 'Cream/terracotta-tinted dark theme, from mockup-2',
+    bg: '#1a1613', card: '#241f1a', divider: '#332c25', muted: '#a89a8a', text: '#f5ede4' },
+  { id: 'navy',   t: 'Deep Navy',       d: 'Cool blue-black, athletic/performance feel',
+    bg: '#0a0e14', card: '#131a24', divider: '#1e2733', muted: '#8090a3', text: '#eef2f7' },
+];
+
+const PRESETS = [
+  { id: 'current', label: 'Current (Orange)', font: 'system', hue: 16, tint: false, bg: 'oled', radius: 16, outline: false, mono: false },
+  { id: 'terracotta', label: 'Warm Terracotta', font: 'rounded', hue: 18, tint: true, bg: 'warm', radius: 20, outline: false, mono: false },
+  { id: 'teal', label: 'Cool Teal', font: 'system', hue: 178, tint: true, bg: 'navy', radius: 14, outline: true, mono: false },
+  { id: 'mono', label: 'Monochrome Lab', font: 'mono', hue: 0, tint: false, bg: 'charcoal', radius: 8, outline: true, mono: true },
+  { id: 'neon', label: 'High-Contrast Neon', font: 'rounded', hue: 285, tint: false, bg: 'oled', radius: 24, outline: false, mono: false },
+];
+
+const state = { font: 'system', hue: 16, tint: false, bg: 'oled', radius: 16, outline: false, mono: false, preset: 'current' };
+
+function buildOptionCards(containerId, items, key) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = items.map(item => `
+    <div class="option-card ${state[key] === item.id ? 'selected' : ''}" data-id="${item.id}" onclick="setOption('${key}','${item.id}')">
+      <div class="t">${item.t}</div>
+      <div class="d">${item.d}</div>
+    </div>`).join('');
+}
+
+function buildPresets() {
+  const el = document.getElementById('presets');
+  el.innerHTML = PRESETS.map(p => `
+    <div class="preset-chip ${state.preset === p.id ? 'selected' : ''}" data-id="${p.id}" onclick="applyPreset('${p.id}')">${p.label}</div>`).join('');
+}
+
+function applyPreset(id) {
+  const p = PRESETS.find(x => x.id === id);
+  Object.assign(state, { font: p.font, hue: p.hue, tint: p.tint, bg: p.bg, radius: p.radius, outline: p.outline, mono: p.mono, preset: id });
+  document.getElementById('hue-slider').value = p.hue;
+  document.getElementById('radius-slider').value = p.radius;
+  refreshControls();
+  updateAll();
+}
+
+function setOption(key, val) {
+  state[key] = val;
+  state.preset = null;
+  refreshControls();
+  updateAll();
+}
+
+function setHue(v) { state.hue = Number(v); state.preset = null; document.getElementById('hue-val').textContent = v + '°'; refreshControls(); updateAll(); }
+function setRadius(v) { state.radius = Number(v); state.preset = null; document.getElementById('radius-val').textContent = v + 'px'; refreshControls(); updateAll(); }
+function toggleTint() { state.tint = !state.tint; state.preset = null; refreshControls(); updateAll(); }
+function toggleOutline() { state.outline = !state.outline; state.preset = null; refreshControls(); updateAll(); }
+function toggleMonoNum() { state.mono = !state.mono; state.preset = null; refreshControls(); updateAll(); }
+
+function refreshControls() {
+  document.getElementById('toggle-tint').classList.toggle('on', state.tint);
+  document.getElementById('toggle-outline').classList.toggle('on', state.outline);
+  document.getElementById('toggle-mono-num').classList.toggle('on', state.mono);
+  buildOptionCards('font-cards', FONTS, 'font');
+  buildOptionCards('bg-cards', BACKGROUNDS, 'bg');
+  buildPresets();
+}
+
+function hueName(h) {
+  if (h < 15 || h >= 345) return 'red';
+  if (h < 40) return 'orange';
+  if (h < 65) return 'yellow';
+  if (h < 150) return 'green';
+  if (h < 200) return 'teal/cyan';
+  if (h < 250) return 'blue';
+  if (h < 290) return 'purple';
+  if (h < 330) return 'magenta';
+  return 'pink';
+}
+
+function updateAll() {
+  renderPreview();
+  updatePrompt();
+}
+
+function renderPreview() {
+  const bg = BACKGROUNDS.find(b => b.id === state.bg);
+  const font = FONTS.find(f => f.id === state.font);
+  const accent = `hsl(${state.hue}, 85%, 58%)`;
+  const accentTint = `hsl(${state.hue}, 85%, 58%, 0.14)`;
+  const phone = document.getElementById('phone');
+
+  phone.style.setProperty('--bg', bg.bg);
+  phone.style.setProperty('--card', bg.card);
+  phone.style.setProperty('--divider', bg.divider);
+  phone.style.setProperty('--muted', bg.muted);
+  phone.style.setProperty('--text', bg.text);
+  phone.style.setProperty('--accent', accent);
+  phone.style.setProperty('--accent-tint-bg', accentTint);
+  phone.style.setProperty('--radius', state.radius + 'px');
+  phone.style.setProperty('--font', font.css);
+  phone.style.setProperty('--font-num', state.mono ? `ui-monospace, 'SF Mono', Menlo, monospace` : font.css);
+  phone.style.setProperty('--card-border', state.outline ? bg.divider : 'transparent');
+  phone.style.background = bg.bg === '#000000' ? '#000' : bg.bg;
+
+  document.getElementById('screen').classList.toggle('tinted', state.tint);
+  document.querySelectorAll('.card').forEach(c => {
+    c.style.background = state.outline ? 'transparent' : 'var(--card)';
+  });
+}
+
+function updatePrompt() {
+  const bg = BACKGROUNDS.find(b => b.id === state.bg);
+  const font = FONTS.find(f => f.id === state.font);
+  const parts = [];
+
+  parts.push(`Define the app's design system (Colors.swift / Font+Theme.swift) with these tokens, applied consistently across all screens — not just Profile:`);
+
+  parts.push(`Accent color: a ${hueName(state.hue)} (hue ${state.hue}°, HSL ${state.hue},85%,58%) as the single accent color, replacing the current orange (#ff6b35) if different. Used for the active tab icon, primary buttons, streak pill, and highlighted values (PR weights).`);
+
+  parts.push(`Background theme — "${bg.t}": screen background ${bg.bg}, card surfaces ${bg.card}, dividers ${bg.divider}, muted text ${bg.muted}.`);
+
+  if (font.id === 'system') {
+    parts.push(`Typography: keep the default San Francisco system font.`);
+  } else {
+    parts.push(`Typography: use ${font.t} (${font.d.toLowerCase()}) instead of the default system font, applied via a custom Font extension.`);
+  }
+  if (state.mono) parts.push(`Use tabular/monospaced digits for numeric values (stat tiles, PR weights) via .monospacedDigit() even if body text uses a different font — keeps numbers aligned and scannable.`);
+
+  parts.push(`Card style: ${state.outline ? `outlined — transparent fill with a 1px ${bg.divider} border` : 'filled — solid surface color, no border'}, corner radius ${state.radius}px.`);
+
+  parts.push(`Accent usage: ${state.tint ? 'tinted — pills and icon badges use a ~14% opacity accent background with full-opacity accent text/icon, not solid fill' : 'solid — pills and icon badges use a full-opacity accent fill with white text/icon'}.`);
+
+  document.getElementById('prompt').textContent = parts.join('\n\n');
+}
+
+function copyPrompt() {
+  const text = document.getElementById('prompt').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy Prompt'; btn.classList.remove('copied'); }, 1400);
+  });
+}
+
+refreshControls();
+updateAll();
+</script>
+</body>
+</html>
