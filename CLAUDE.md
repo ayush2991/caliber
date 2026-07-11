@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-Caliber is a SwiftUI workout tracking app for iOS. It is in early development — the app entry point is `caliber/caliberApp.swift` and the only view so far is `caliber/ContentView.swift`. UI mockups exist in `mockups/` (see Mockups section below).
+Caliber is a SwiftUI workout tracking app for iOS, backed by SwiftData for persistence. The app entry point is `caliber/caliberApp.swift`, which wires a `ModelContainer` and presents `ContentView` — a four-tab shell (Home / Exercises / History / Profile). UI mockups exist in `mockups/` (see Mockups section below).
 
 ## Commands
 
@@ -17,19 +17,36 @@ xcodebuild -project caliber.xcodeproj -scheme caliber build
 
 # Run all tests on simulator
 xcodebuild -project caliber.xcodeproj -scheme caliber test \
-  -destination 'platform=iOS Simulator,name=iPhone 16'
+  -destination 'platform=iOS Simulator,name=iPhone 17'
+
+# Run a single test (unit or UI), e.g. one test class
+xcodebuild -project caliber.xcodeproj -scheme caliber test \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
+  -only-testing:caliberTests/SeedDataTests
 ```
 
 There is no package manager (CocoaPods/SPM) in use yet.
 
 ## Architecture
 
-- `caliber/` — all app source. Entry point: `caliberApp.swift` → `ContentView.swift`.
-- `caliberTests/` — unit tests using Swift Testing (`import Testing`, `@Test`, `#expect(...)`).
-- `caliberUITests/` — UI tests using XCTest/XCUITest; each test launches a fresh `XCUIApplication()`.
-- `caliber/Assets.xcassets` — images, app icon, and `AccentColor`.
+The Xcode project uses synchronized file groups (`PBXFileSystemSynchronizedRootGroup`), so new files dropped into `caliber/`, `caliberTests/`, or `caliberUITests/` are picked up automatically — there's no need to hand-edit `caliber.xcodeproj/project.pbxproj` to add a source file to the build.
 
-Keep views as `struct`s with small `body` implementations. Extract private subviews when a view becomes hard to scan. Avoid hand-editing `caliber.xcodeproj/project.pbxproj`.
+**Data layer (SwiftData):**
+- `caliber/Models/` — the three `@Model` classes: `Exercise` (name/category/equipment), `WorkoutSession` (a date + its `SetEntry` children, cascade-deleted with the session), `SetEntry` (weight/reps/order, linked to an `Exercise` and its parent `WorkoutSession`). There is no template/routine concept — workouts are logged ad hoc.
+- `caliber/caliberApp.swift` creates the single `ModelContainer` for `[Exercise, WorkoutSession, SetEntry]` and injects it app-wide via `.modelContainer(for:)`.
+- `caliber/SeedData.swift` holds the built-in exercise library (~18 exercises across Chest/Back/Legs/Shoulders/Arms/Core) and `seedExercisesIfNeeded(in:)`, which idempotently inserts them into an empty store. `ContentView` calls this on `.task` at launch.
+- Views read data with `@Query` and write via the `@Environment(\.modelContext)` context directly — there's no repository/service abstraction layer.
+
+**Navigation shell:**
+- `caliber/ContentView.swift` is a `TabView` with four tabs, each its own top-level view (`HomeView`, `ExercisesView`, `HistoryView`, `ProfileView`), all wrapped in their own `NavigationStack`.
+- `ExercisesView` and `HistoryView` are driven live by `@Query` (exercises grouped by category, sessions sorted by date); `HomeView` and `ProfileView` are currently placeholders.
+- Current styling is plain system defaults throughout (no custom theme/colors) since a visual direction hasn't been finalized against the mockups yet — expect this to be restyled once one is picked.
+
+**Tests:**
+- `caliberTests/` — unit tests using Swift Testing (`import Testing`, `@Test`, `#expect(...)`). `SeedDataTests` uses an in-memory `ModelContainer` to test seeding, seed idempotency, and cascade-delete behavior without touching the real on-disk store.
+- `caliberUITests/` — UI tests using XCTest/XCUITest; each test launches a fresh `XCUIApplication()`.
+
+Keep views as `struct`s with small `body` implementations. Extract private subviews when a view becomes hard to scan.
 
 ## Mockups
 
