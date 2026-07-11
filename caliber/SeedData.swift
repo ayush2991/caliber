@@ -5,11 +5,20 @@
 
 import Foundation
 import SwiftData
+import os
 
 enum SeedData {
+    private static let logger = Logger(subsystem: Bundle.main.bundleIdentifier ?? "caliber", category: "SeedData")
+
     /// Inserts the built-in exercise library if the store is empty. Safe to call on every launch.
     static func seedExercisesIfNeeded(in context: ModelContext) {
-        let existingCount = (try? context.fetchCount(FetchDescriptor<Exercise>())) ?? 0
+        let existingCount: Int
+        do {
+            existingCount = try context.fetchCount(FetchDescriptor<Exercise>())
+        } catch {
+            logger.error("Failed to fetch existing exercise count: \(error)")
+            return
+        }
         guard existingCount == 0 else { return }
 
         for seed in exercises {
@@ -20,10 +29,22 @@ enum SeedData {
     /// Inserts sample workout history if the store has no sessions yet. Safe to call on every launch.
     /// Assumes `seedExercisesIfNeeded` has already run so the referenced exercises exist.
     static func seedSampleHistoryIfNeeded(in context: ModelContext) {
-        let existingCount = (try? context.fetchCount(FetchDescriptor<WorkoutSession>())) ?? 0
+        let existingCount: Int
+        do {
+            existingCount = try context.fetchCount(FetchDescriptor<WorkoutSession>())
+        } catch {
+            logger.error("Failed to fetch existing workout session count: \(error)")
+            return
+        }
         guard existingCount == 0 else { return }
 
-        let allExercises = (try? context.fetch(FetchDescriptor<Exercise>())) ?? []
+        let allExercises: [Exercise]
+        do {
+            allExercises = try context.fetch(FetchDescriptor<Exercise>())
+        } catch {
+            logger.error("Failed to fetch exercises for sample history seeding: \(error)")
+            return
+        }
         guard !allExercises.isEmpty else { return }
         func exercise(named name: String) -> Exercise? {
             allExercises.first { $0.name == name }
