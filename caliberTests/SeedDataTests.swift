@@ -7,6 +7,7 @@ import Testing
 import SwiftData
 @testable import caliber
 
+@MainActor
 struct SeedDataTests {
     private func makeInMemoryContext() throws -> ModelContext {
         let container = try ModelContainer(

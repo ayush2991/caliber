@@ -6,6 +6,7 @@
 import Testing
 @testable import caliber
 
+@MainActor
 struct HistorySummaryTests {
     @Test func emptyEntriesFallsBackToNoSetsLogged() {
         let summary = HistorySummary.summary(for: [])
