@@ -6,19 +6,29 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct ContentView: View {
+    @Environment(\.modelContext) private var modelContext
+
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        TabView {
+            HomeView()
+                .tabItem { Label("Home", systemImage: "house") }
+            ExercisesView()
+                .tabItem { Label("Exercises", systemImage: "list.bullet") }
+            HistoryView()
+                .tabItem { Label("History", systemImage: "clock") }
+            ProfileView()
+                .tabItem { Label("Profile", systemImage: "person") }
         }
-        .padding()
+        .task {
+            SeedData.seedExercisesIfNeeded(in: modelContext)
+        }
     }
 }
 
 #Preview {
     ContentView()
+        .modelContainer(for: [Exercise.self, WorkoutSession.self, SetEntry.self], inMemory: true)
 }
